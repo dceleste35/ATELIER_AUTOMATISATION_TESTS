@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard — Tests API Frankfurter</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#121a33; --muted:#aab4d4; --text:#e9edff;
+      --accent:#77baff; --ok:#62d6a0; --warn:#ffcc66; --bad:#ff6b7a;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:radial-gradient(1200px 600px at 10% 0%,#172257 0%,var(--bg) 60%);
+      color:var(--text);line-height:1.45;}
+    header{padding:32px 18px 10px;max-width:1200px;margin:0 auto;}
+    h1{margin:0 0 10px;font-size:clamp(22px,3vw,30px);}
+    .subtitle{color:var(--muted);}
+    .container{max-width:1200px;margin:0 auto;padding:18px;}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;
+      background:rgba(119,186,255,0.12);border:1px solid rgba(119,186,255,0.28);color:#d9ecff;font-size:12px;}
+    .pill.ok{background:rgba(98,214,160,0.12);border-color:rgba(98,214,160,0.28);color:#d8ffe9;}
+    .pill.warn{background:rgba(255,204,102,0.12);border-color:rgba(255,204,102,0.28);color:#ffe6b3;}
+    .pill.bad{background:rgba(255,107,122,0.12);border-color:rgba(255,107,122,0.28);color:#ffd6db;}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01));
+      border:1px solid rgba(255,255,255,0.08);box-shadow:0 12px 30px rgba(0,0,0,0.35);
+      border-radius:16px;padding:16px;margin-bottom:14px;}
+    .card h2{margin:0 0 10px;font-size:18px;}
+    .kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:6px;}
+    @media(max-width:900px){.kpi{grid-template-columns:repeat(2,1fr);}}
+    .kpi .box{padding:14px;border-radius:14px;border:1px solid rgba(255,255,255,0.08);
+      background:rgba(255,255,255,0.02);}
+    .kpi .box b{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+    .kpi .box .v{font-size:24px;font-weight:700;}
+    .kpi .box .v.ok{color:var(--ok)} .kpi .box .v.warn{color:var(--warn)} .kpi .box .v.bad{color:var(--bad)}
+    table{width:100%;border-collapse:collapse;font-size:13px;border-radius:12px;overflow:hidden;
+      border:1px solid rgba(255,255,255,0.08);}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.08);text-align:left;vertical-align:top;}
+    th{background:rgba(119,186,255,0.10);font-weight:600;}
+    tr:last-child td{border-bottom:none;}
+    code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);
+      border-radius:8px;padding:1px 6px;font-size:0.92em;}
+    a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}
+    button,.btn{cursor:pointer;background:rgba(119,186,255,0.18);border:1px solid rgba(119,186,255,0.34);
+      color:var(--text);padding:10px 16px;border-radius:12px;font-weight:600;font-size:13px;}
+    button:hover,.btn:hover{filter:brightness(1.1);}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 4px;}
+    .empty{padding:40px 20px;text-align:center;color:var(--muted);}
+    .status-PASS{color:var(--ok);font-weight:600;}
+    .status-FAIL{color:var(--bad);font-weight:600;}
+    .status-ERROR{color:var(--warn);font-weight:600;}
+    .muted{color:var(--muted);}
+    .small{font-size:12px;}
+    details{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);
+      border-radius:10px;padding:8px 12px;margin-top:8px;}
+    details summary{cursor:pointer;color:var(--muted);font-size:13px;}
+    pre{background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);
+      border-radius:10px;padding:12px;overflow:auto;font-size:12px;}
+  </style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <span class="pill">Atelier — Tests API</span>
+    {% if last %}
+      {% set s = last.summary %}
+      {% if s.errors > 0 %}
+        <span class="pill bad">API DOWN</span>
+      {% elif s.failed > 0 or s.latency_ms_p95 >= 3000 %}
+        <span class="pill warn">DEGRADED</span>
+      {% else %}
+        <span class="pill ok">UP</span>
+      {% endif %}
+    {% endif %}
+  </div>
+  <h1>Dashboard — Frankfurter API</h1>
+  <p class="subtitle">
+    Tests automatisés + métriques QoS.
+    <a href="{{ url_for('consignes') }}">← consignes</a> ·
+    <a href="{{ url_for('runs_json') }}">runs.json</a> ·
+    <a href="{{ url_for('health') }}">/health</a>
+  </p>
+</header>
+
+<main class="container">
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;">
+      <div>
+        <h2 style="margin:0;">Dernier run</h2>
+        {% if last %}
+          <div class="muted small">{{ last.timestamp }} · API <code>{{ last.api }}</code></div>
+        {% endif %}
+      </div>
+      <form method="post" action="{{ url_for('trigger_run') }}" class="actions">
+        <button type="submit">▶ Lancer un run</button>
+      </form>
+    </div>
+
+    {% if not last %}
+      <div class="empty">
+        Aucun run enregistré. Cliquez sur <b>Lancer un run</b> pour démarrer.
+      </div>
+    {% else %}
+      {% set s = last.summary %}
+      <div class="kpi">
+        <div class="box">
+          <b>Tests</b>
+          <div class="v {{ 'ok' if s.failed == 0 and s.errors == 0 else 'bad' }}">
+            {{ s.passed }}/{{ s.total }}
+          </div>
+          <div class="muted small">passed</div>
+        </div>
+        <div class="box">
+          <b>Failed</b>
+          <div class="v {{ 'ok' if s.failed == 0 else 'bad' }}">{{ s.failed }}</div>
+        </div>
+        <div class="box">
+          <b>Errors (réseau)</b>
+          <div class="v {{ 'ok' if s.errors == 0 else 'warn' }}">{{ s.errors }}</div>
+        </div>
+        <div class="box">
+          <b>Latence avg</b>
+          <div class="v {{ 'ok' if s.latency_ms_avg < 1000 else ('warn' if s.latency_ms_avg < 3000 else 'bad') }}">
+            {{ s.latency_ms_avg }} ms
+          </div>
+          <div class="muted small">p95 = {{ s.latency_ms_p95 }} ms</div>
+        </div>
+        <div class="box">
+          <b>Disponibilité</b>
+          <div class="v {{ 'ok' if s.availability >= 0.99 else ('warn' if s.availability >= 0.8 else 'bad') }}">
+            {{ '%.0f' | format(s.availability * 100) }}%
+          </div>
+          <div class="muted small">error_rate = {{ '%.1f' | format(s.error_rate * 100) }}%</div>
+        </div>
+      </div>
+
+      <h2 style="margin-top:18px;">Détail des tests</h2>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Test</th><th>Statut</th><th>HTTP</th><th>Latence</th><th>Détails</th></tr>
+        </thead>
+        <tbody>
+          {% for t in last.tests %}
+          <tr>
+            <td class="muted">{{ loop.index }}</td>
+            <td><code>{{ t.name }}</code></td>
+            <td class="status-{{ t.status }}">{{ t.status }}</td>
+            <td>{{ t.http_status if t.http_status else '—' }}</td>
+            <td>{{ t.latency_ms }} ms</td>
+            <td class="small muted">{{ t.details or '' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <details>
+        <summary>Voir le JSON complet du run</summary>
+        <pre>{{ last | tojson(indent=2) }}</pre>
+      </details>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Historique ({{ history | length }} dernier{{ 's' if history|length > 1 else '' }} runs)</h2>
+    {% if history %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Timestamp</th><th>Pass / Total</th>
+          <th>Errors</th><th>Avg ms</th><th>P95 ms</th><th>Dispo</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in history %}
+        <tr>
+          <td class="muted">{{ r.id }}</td>
+          <td class="small">{{ r.timestamp }}</td>
+          <td>
+            <span class="status-{{ 'PASS' if r.failed == 0 and r.errors == 0 else 'FAIL' }}">
+              {{ r.passed }}/{{ r.total }}
+            </span>
+          </td>
+          <td>{{ r.errors }}</td>
+          <td>{{ r.latency_ms_avg }}</td>
+          <td>{{ r.latency_ms_p95 }}</td>
+          <td>{{ '%.0f' | format(r.availability * 100) }}%</td>
+          <td><a href="{{ url_for('run_detail', run_id=r.id) }}">voir</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty">Aucun run dans l'historique.</div>
+    {% endif %}
+  </div>
+
+  <div class="card small muted">
+    Anti-spam : 1 run / {{ min_interval }} s · DB SQLite locale ·
+    Tests <code>tester/tests.py</code> · Runner <code>tester/runner.py</code>
+  </div>
+
+</main>
+</body>
+</html>

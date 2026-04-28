@@ -1,13 +1,24 @@
 # API Choice
 
-- Étudiant :
-- API choisie :
-- URL base :
-- Documentation officielle / README :
-- Auth : None / API Key / OAuth
-- Endpoints testés :
-  - GET ...
-  - GET ...
-- Hypothèses de contrat (champs attendus, types, codes) :
-- Limites / rate limiting connu :
-- Risques (instabilité, downtime, CORS, etc.) :
+- **Étudiant :** Dan Céleste
+- **API choisie :** Frankfurter
+- **URL base :** https://api.frankfurter.app
+- **Documentation officielle / README :** https://www.frankfurter.app/docs/
+- **Auth :** None
+- **Endpoints testés :**
+  - GET /latest?from=EUR — derniers taux, base EUR
+  - GET /latest?from=EUR&to=USD — conversion ciblée
+  - GET /currencies — liste des devises supportées
+  - GET /2025-05-24?from=EUR — taux historique date donnée
+  - GET /latest?from=ZZZ — cas d'entrée invalide (devise inconnue → 404 attendu)
+- **Hypothèses de contrat (champs attendus, types, codes) :**
+  - `/latest` → `200`, JSON, champs: `amount` (number), `base` (string, ex `"EUR"`), `date` (string `YYYY-MM-DD`), `rates` (object `{string: number}` non vide).
+  - `/currencies` → `200`, JSON, objet `{CODE: nom_devise}`, ≥30 entrées, codes ISO 4217 sur 3 lettres majuscules.
+  - Endpoint date historique → `200`, mêmes champs que `/latest`, `date` reflète la date demandée (ou jour ouvré le plus proche).
+  - Devise invalide (`from=ZZZ` ou `to=ZZZ`) → `404` ou `422` avec message d'erreur JSON.
+  - Content-Type: application/json sur toutes les réponses 2xx.
+- **Limites / rate limiting connu :** Pas de quota officiellement publié. API gratuite, données BCE rafraîchies ~16h CET en jours ouvrés.
+- **Risques (instabilité, downtime, CORS, etc.) :**
+  - Fournisseur tiers gratuit → downtime possible
+  - Pas de mise à jour week-end/jours fériés (le `date` retourné peut être antérieur à aujourd'hui).
+  - Latence variable selon géo (hébergé en Europe).
